@@ -41,6 +41,7 @@ decompose -> draft -> score_and_route -> human_review(interrupt #1)
 app/            FastAPI app, LangGraph graph, state, KB retrieval, LLM wrapper
 static/         Single-page UI (timeline, review queue, export preview)
 data/           Sample RFP + markdown knowledge base
+evals/          Offline eval harness + labeled golden dataset (quality metrics)
 tests/          Graph interrupt/resume + API tests (run fully offline)
 ```
 
@@ -71,6 +72,26 @@ export OPENAI_API_KEY=sk-...     # optional; demo mode is the default
 ```bash
 .venv/bin/python -m pytest -q
 ```
+
+## Evaluate
+
+An offline evaluation harness (`evals/`) scores the demo-mode pipeline against a
+labeled golden dataset (`evals/dataset.py`) — no API key required. It measures
+question classification, risk assessment, HITL routing, knowledge-base retrieval,
+answer grounding, and confidence calibration, and gates on per-metric thresholds.
+
+```bash
+.venv/bin/python -m evals                       # print report; exit 1 if below thresholds
+.venv/bin/python -m evals --json evals/report.json   # also write full per-case JSON
+.venv/bin/python -m evals --no-gate             # report only, always exit 0
+```
+
+Metrics gated: `category_accuracy`, `risk_accuracy`, `high_risk_recall`,
+`routing_accuracy`, `gap_flag_rate`, `retrieval_hit_rate`, `answer_grounding_rate`
+(thresholds live in `evals/harness.py`). The gate is also exercised by
+`tests/test_eval.py`, so `pytest` fails on a quality regression. Safety-critical
+metrics (high-risk items and knowledge gaps must always reach a human) are held
+at 100%.
 
 ## API
 
