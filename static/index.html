@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Response Studio — RFP / Security Questionnaire HITL</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #171d2c; --panel2: #1e2638; --line: #2a3448;
+    --text: #e6ebf5; --muted: #94a3b8; --accent: #6366f1; --accent2: #22d3ee;
+    --ok: #22c55e; --warn: #f59e0b; --risk: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         background: var(--bg); color: var(--text); }
+  header { padding: 18px 28px; border-bottom: 1px solid var(--line);
+           display: flex; align-items: center; gap: 14px; background: var(--panel); }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .2px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .badge { margin-left: auto; font-size: 12px; padding: 5px 10px; border-radius: 999px;
+           border: 1px solid var(--line); color: var(--accent2); background: #0d1826; }
+  .wrap { display: grid; grid-template-columns: 300px 1fr; gap: 20px; padding: 20px 28px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+              margin: 0 0 12px; }
+  button { cursor: pointer; border: none; border-radius: 8px; padding: 9px 14px; font-weight: 600;
+           font-size: 13px; background: var(--accent); color: white; }
+  button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+  button:disabled { opacity: .5; cursor: default; }
+  .stat { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px dashed var(--line); }
+  .stat:last-child { border-bottom: none; }
+  .timeline li { list-style: none; font-size: 13px; color: var(--muted); padding: 5px 0 5px 16px;
+                 border-left: 2px solid var(--line); margin-left: 4px; position: relative; }
+  .timeline li::before { content: ""; position: absolute; left: -5px; top: 10px; width: 8px; height: 8px;
+                         border-radius: 50%; background: var(--accent2); }
+  .timeline li b { color: var(--text); }
+  .card { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .card .q { font-weight: 600; margin-bottom: 6px; }
+  .meta { font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pill { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+  .pill.risk-high { color: var(--risk); border-color: #5b2330; }
+  .pill.low-conf { color: var(--warn); border-color: #5b4620; }
+  .pill.cat { color: var(--accent2); }
+  textarea { width: 100%; min-height: 90px; background: var(--bg); color: var(--text);
+             border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: inherit; resize: vertical; }
+  input[type=text] { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line);
+                     border-radius: 8px; padding: 8px 10px; font: inherit; }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
+  pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid var(--line);
+        border-radius: 10px; padding: 14px; font-size: 13px; max-height: 460px; overflow: auto; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .hidden { display: none; }
+  a.dl { color: var(--accent2); font-size: 13px; margin-right: 16px; }
+  .answers-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .answers-table td, .answers-table th { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .status { font-weight: 600; }
+  .status.auto_approved, .status.approved, .status.exported { color: var(--ok); }
+  .status.needs_review { color: var(--warn); }
+  .status.escalated, .status.rejected { color: var(--risk); }
+  .status.rewritten { color: var(--accent2); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Response Studio</h1>
+  <span class="sub">RFP / Security Questionnaire · LangGraph HITL</span>
+  <span class="badge" id="modeBadge">mode: …</span>
+</header>
+
+<div class="wrap">
+  <aside class="panel">
+    <h2>Run</h2>
+    <div id="startArea">
+      <div class="muted" id="sampleTitle">Loading sample…</div>
+      <div class="row"><button id="startBtn">Start sample run</button></div>
+      <div class="muted" style="margin-top:10px">Uses a bundled security questionnaire + local knowledge base. No API key required.</div>
+    </div>
+    <div id="statsArea" class="hidden" style="margin-top:14px">
+      <h2>Stats</h2>
+      <div id="stats"></div>
+      <div class="row" style="margin-top:12px"><button class="secondary" id="resetBtn">New run</button></div>
+    </div>
+    <div style="margin-top:18px">
+      <h2>Timeline</h2>
+      <ul class="timeline" id="timeline"><li class="muted">Not started</li></ul>
+    </div>
+  </aside>
+
+  <main>
+    <div class="panel" id="stage">
+      <h2 id="stageTitle">Getting started</h2>
+      <div id="stageBody" class="muted">Click “Start sample run” to decompose the questionnaire, draft answers, and route low-confidence / high-risk items to human review.</div>
+    </div>
+    <div class="panel hidden" id="answersPanel" style="margin-top:20px">
+      <h2>All answers</h2>
+      <table class="answers-table"><tbody id="answersBody"></tbody></table>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let run = null;
+
+async function api(path, opts) {
+  const res = await fetch(path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts));
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || res.statusText); }
+  return res.json();
+}
+
+async function init() {
+  try {
+    const h = await api("/api/health");
+    $("modeBadge").textContent = "mode: " + h.llm_mode;
+  } catch (e) {}
+  try {
+    const s = await api("/api/sample");
+    $("sampleTitle").textContent = s.rfp_title;
+  } catch (e) { $("sampleTitle").textContent = "sample unavailable"; }
+}
+
+$("startBtn").onclick = async () => {
+  $("startBtn").disabled = true;
+  $("startBtn").textContent = "Running…";
+  try {
+    run = await api("/api/runs", { method: "POST", body: JSON.stringify({ use_sample: true }) });
+    render();
+  } catch (e) { alert("Failed to start: " + e.message); }
+  $("startBtn").disabled = false;
+  $("startBtn").textContent = "Start sample run";
+};
+
+$("resetBtn").onclick = () => { run = null; location.reload(); };
+
+function renderTimeline() {
+  const el = $("timeline");
+  const t = (run && run.timeline) || [];
+  el.innerHTML = t.length ? t.map(e => `<li><b>${e.step}</b> — ${e.detail}</li>`).join("") : '<li class="muted">Not started</li>';
+}
+
+function renderStats() {
+  $("statsArea").classList.remove("hidden");
+  const s = run.stats || {};
+  $("stats").innerHTML =
+    `<div class="stat"><span>Questions</span><b>${s.total ?? "-"}</b></div>` +
+    `<div class="stat"><span>Auto-approved</span><b>${s.auto_approved ?? "-"}</b></div>` +
+    `<div class="stat"><span>Needs review</span><b>${s.needs_review ?? "-"}</b></div>` +
+    `<div class="stat"><span>Status</span><b>${run.status}</b></div>`;
+}
+
+function renderAnswers() {
+  if (!run.answers || !run.answers.length) return;
+  $("answersPanel").classList.remove("hidden");
+  $("answersBody").innerHTML =
+    "<tr><th>#</th><th>Question</th><th>Cat</th><th>Conf</th><th>Status</th></tr>" +
+    run.answers.map((a, i) =>
+      `<tr><td>${i + 1}</td><td>${escapeHtml(a.question_text)}</td>` +
+      `<td>${a.category}</td><td>${Math.round(a.confidence * 100)}%</td>` +
+      `<td class="status ${a.status}">${a.status}</td></tr>`).join("");
+}
+
+function escapeHtml(s) { return (s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function renderReviewGate(pending) {
+  $("stageTitle").textContent = "Human review queue — Gate 1";
+  const items = pending.items || [];
+  const cards = items.map(a => `
+    <div class="card" data-qid="${a.question_id}">
+      <div class="q">${escapeHtml(a.question_text)}</div>
+      <div class="meta">
+        <span class="pill cat">${a.category}</span>
+        <span class="pill ${a.confidence < 0.45 ? "low-conf" : ""}">confidence ${Math.round(a.confidence * 100)}%</span>
+        <span class="pill ${a.risk === "high" ? "risk-high" : ""}">risk: ${a.risk}</span>
+      </div>
+      <textarea data-field="answer">${escapeHtml(a.draft)}</textarea>
+      <div class="row">
+        <select data-field="action">
+          <option value="approve">Approve</option>
+          <option value="rewrite">Rewrite (save edits)</option>
+          <option value="escalate">Escalate to SME</option>
+        </select>
+        <input type="text" data-field="note" placeholder="Reviewer note (optional)" style="flex:1" />
+      </div>
+    </div>`).join("");
+  $("stageBody").innerHTML =
+    `<div class="muted" style="margin-bottom:12px">${escapeHtml(pending.message)}</div>` +
+    cards +
+    `<div class="toolbar"><button id="submitReview">Submit review decisions</button></div>`;
+  $("submitReview").onclick = submitReview;
+}
+
+async function submitReview() {
+  const decisions = [...document.querySelectorAll(".card")].map(card => {
+    const qid = card.dataset.qid;
+    const action = card.querySelector('[data-field=action]').value;
+    const note = card.querySelector('[data-field=note]').value;
+    const answer = card.querySelector('[data-field=answer]').value;
+    const d = { question_id: qid, action, note };
+    if (action === "rewrite") d.new_answer = answer;
+    return d;
+  });
+  $("submitReview").disabled = true;
+  $("submitReview").textContent = "Submitting…";
+  try { run = await api(`/api/runs/${run.run_id}/resume`, { method: "POST", body: JSON.stringify({ decisions }) }); render(); }
+  catch (e) { alert("Resume failed: " + e.message); $("submitReview").disabled = false; }
+}
+
+function renderFinalGate(pending) {
+  $("stageTitle").textContent = "Final approval — Gate 2";
+  $("stageBody").innerHTML =
+    `<div class="muted" style="margin-bottom:12px">${escapeHtml(pending.message)}</div>` +
+    `<pre>${escapeHtml(pending.preview)}</pre>` +
+    `<div class="toolbar" style="margin-top:14px">
+       <button id="approveBtn">Approve &amp; export</button>
+       <button class="secondary" id="rejectBtn">Reject</button>
+     </div>`;
+  $("approveBtn").onclick = () => finalDecision("approve");
+  $("rejectBtn").onclick = () => finalDecision("reject");
+}
+
+async function finalDecision(action) {
+  const note = action === "reject" ? (prompt("Rejection note:") || "") : "";
+  try { run = await api(`/api/runs/${run.run_id}/resume`, { method: "POST", body: JSON.stringify({ action, note }) }); render(); }
+  catch (e) { alert("Resume failed: " + e.message); }
+}
+
+function download(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderDone() {
+  if (run.status === "rejected") {
+    $("stageTitle").textContent = "Package rejected";
+    $("stageBody").innerHTML = `<div class="muted">The reviewer rejected the compiled package. Start a new run to try again.</div>`;
+    return;
+  }
+  $("stageTitle").textContent = "✅ Response package exported";
+  const md = run.compiled_markdown || "";
+  const json = JSON.stringify(run.export_json || {}, null, 2);
+  $("stageBody").innerHTML =
+    `<div class="toolbar">
+       <a class="dl" href="#" id="dlMd">⬇ download markdown</a>
+       <a class="dl" href="#" id="dlJson">⬇ download JSON</a>
+     </div><pre>${escapeHtml(md)}</pre>`;
+  $("dlMd").onclick = (e) => { e.preventDefault(); download("rfp_response.md", md, "text/markdown"); };
+  $("dlJson").onclick = (e) => { e.preventDefault(); download("rfp_response.json", json, "application/json"); };
+}
+
+function render() {
+  $("startArea").classList.add("hidden");
+  renderTimeline();
+  renderStats();
+  renderAnswers();
+  const pending = run.pending_interrupt;
+  if (pending && pending.gate === "review_queue") renderReviewGate(pending);
+  else if (pending && pending.gate === "final_approval") renderFinalGate(pending);
+  else if (run.done) renderDone();
+  else { $("stageTitle").textContent = "Processing…"; $("stageBody").textContent = "Status: " + run.status; }
+}
+
+init();
+</script>
+</body>
+</html>
