@@ -75,23 +75,33 @@ export OPENAI_API_KEY=sk-...     # optional; demo mode is the default
 
 ## Evaluate
 
-An offline evaluation harness (`evals/`) scores the demo-mode pipeline against a
-labeled golden dataset (`evals/dataset.py`) — no API key required. It measures
-question classification, risk assessment, HITL routing, knowledge-base retrieval,
-answer grounding, and confidence calibration, and gates on per-metric thresholds.
+An offline evaluation harness (`evals/`) scores the pipeline against a labeled
+golden dataset (`evals/dataset.py`) — no API key required — and gates on
+per-metric thresholds. It has two suites:
+
+- **pipeline** (`evals/harness.py`) — classification, risk, HITL routing,
+  knowledge-base retrieval, answer grounding, confidence calibration.
+- **answers** (`evals/answer_quality.py`) — AI answer performance: fact coverage
+  (correctness), faithfulness (grounding / anti-hallucination), refusal behavior
+  on out-of-KB questions, hallucination rate, and an optional LLM-as-judge.
 
 ```bash
-.venv/bin/python -m evals                       # print report; exit 1 if below thresholds
-.venv/bin/python -m evals --json evals/report.json   # also write full per-case JSON
-.venv/bin/python -m evals --no-gate             # report only, always exit 0
+.venv/bin/python -m evals                        # run both suites; exit 1 on regression
+.venv/bin/python -m evals --suite answers        # AI answer-quality only
+.venv/bin/python -m evals --suite pipeline       # pipeline only
+.venv/bin/python -m evals --json evals/report.json    # write full per-case JSON
+.venv/bin/python -m evals --no-gate              # report only, always exit 0
+
+# Evaluate REAL LLM answers (live mode) + LLM-as-judge:
+OPENAI_API_KEY=sk-... .venv/bin/python -m evals --suite answers --judge
 ```
 
-Metrics gated: `category_accuracy`, `risk_accuracy`, `high_risk_recall`,
-`routing_accuracy`, `gap_flag_rate`, `retrieval_hit_rate`, `answer_grounding_rate`
-(thresholds live in `evals/harness.py`). The gate is also exercised by
-`tests/test_eval.py`, so `pytest` fails on a quality regression. Safety-critical
-metrics (high-risk items and knowledge gaps must always reach a human) are held
-at 100%.
+The `answers` suite is model-agnostic: it evaluates demo-mode answers by default,
+real LLM answers when `OPENAI_API_KEY` is set, or any injected `answer_fn` (tests
+use mock good/bad models to prove the metrics discriminate). Both gates are
+exercised by `tests/test_eval.py` and `tests/test_answer_quality.py`, so `pytest`
+fails on a quality regression. Safety-critical pipeline metrics (high-risk items
+and knowledge gaps must always reach a human) are held at 100%.
 
 ## API
 

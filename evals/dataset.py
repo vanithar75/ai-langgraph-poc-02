@@ -33,6 +33,17 @@ class EvalCase:
     answer_keywords: list[str] = field(default_factory=list)
     # True when there is intentionally no authoritative KB answer.
     knowledge_gap: bool = False
+    # --- answer-quality (AI performance) labels --------------------------
+    # ``key_facts`` are the facts a correct answer MUST include (used to score
+    # answer correctness / recall). ``reference_answer`` is a short gold answer
+    # used for documentation and by the optional LLM-as-judge. Both are empty for
+    # knowledge-gap items, where the model is expected to refuse instead.
+    key_facts: list[str] = field(default_factory=list)
+    reference_answer: str = ""
+
+    def facts(self) -> list[str]:
+        """Facts to score correctness against (falls back to answer_keywords)."""
+        return self.key_facts or self.answer_keywords
 
 
 GOLDEN: list[EvalCase] = [
@@ -44,6 +55,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["security"],
         answer_keywords=["AES-256", "TLS"],
+        key_facts=["AES-256", "TLS", "rotation"],
+        reference_answer="Data is encrypted at rest with AES-256 and in transit with TLS 1.2+, using a FIPS 140-2 KMS with 90-day key rotation.",
     ),
     EvalCase(
         id="q2",
@@ -53,6 +66,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["product"],
         answer_keywords=["SAML", "OIDC"],
+        key_facts=["SAML", "OIDC", "SCIM"],
+        reference_answer="SSO is supported via SAML 2.0 and OIDC, with SCIM 2.0 for automated provisioning.",
     ),
     EvalCase(
         id="q3",
@@ -62,6 +77,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["security"],
         answer_keywords=["MFA"],
+        key_facts=["MFA", "TOTP", "WebAuthn"],
+        reference_answer="MFA is enforced for all administrative accounts, supporting TOTP apps and WebAuthn/FIDO2 keys.",
     ),
     EvalCase(
         id="q4",
@@ -71,6 +88,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["compliance"],
         answer_keywords=["SOC 2"],
+        key_facts=["SOC 2 Type II", "annual"],
+        reference_answer="We maintain an annual SOC 2 Type II attestation available under NDA via our trust portal.",
     ),
     EvalCase(
         id="q5",
@@ -80,6 +99,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["compliance"],
         answer_keywords=["27001"],
+        key_facts=["27001", "certified"],
+        reference_answer="We are ISO/IEC 27001:2022 certified; the certificate and Statement of Applicability are available on request.",
     ),
     EvalCase(
         id="q6",
@@ -89,6 +110,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["compliance"],
         answer_keywords=["30 days"],
+        key_facts=["data processor", "EU", "30 days"],
+        reference_answer="As a GDPR data processor we offer EU data residency and fulfill data subject requests within 30 days.",
     ),
     EvalCase(
         id="q7",
@@ -98,6 +121,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["product"],
         answer_keywords=["RBAC"],
+        key_facts=["roles", "permissions"],
+        reference_answer="Granular RBAC ships with predefined and custom roles and per-resource permissions scoped by workspace, project, and environment.",
     ),
     EvalCase(
         id="q8",
@@ -107,6 +132,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["product"],
         answer_keywords=["99.9%"],
+        key_facts=["99.9%", "uptime"],
+        reference_answer="Our standard enterprise SLA guarantees 99.9% monthly uptime with service credits for missed targets.",
     ),
     EvalCase(
         id="q9",
@@ -116,6 +143,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["security"],
         answer_keywords=["annually"],
+        key_facts=["annually", "third party"],
+        reference_answer="An independent third party performs full-scope penetration tests at least annually and after major changes.",
     ),
     EvalCase(
         id="q10",
@@ -125,6 +154,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["security"],
         answer_keywords=["72 hours"],
+        key_facts=["72 hours", "NIST"],
+        reference_answer="We run a 24/7 incident response process aligned to NIST 800-61 and notify affected customers within 72 hours of confirmation.",
     ),
     EvalCase(
         id="q11",
@@ -134,6 +165,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["product"],
         answer_keywords=["backups"],
+        key_facts=["encrypted", "redundant", "backups"],
+        reference_answer="Encrypted backups are stored in geographically redundant regions and validated via quarterly restore drills.",
     ),
     EvalCase(
         id="q12",
@@ -143,6 +176,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["product"],
         answer_keywords=["REST API"],
+        key_facts=["REST API", "webhooks"],
+        reference_answer="We provide a documented REST API, webhooks, and prebuilt integrations (Slack, Salesforce, Jira, Google Workspace).",
     ),
     EvalCase(
         id="q13",
@@ -152,6 +187,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["pricing"],
         answer_keywords=["Enterprise"],
+        key_facts=["Team", "Business", "Enterprise"],
+        reference_answer="Three tiers (Team, Business, Enterprise); Team/Business are per-seat, Enterprise is a custom annual agreement with usage metering.",
     ),
     EvalCase(
         id="q14",
@@ -161,6 +198,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="auto_approved",
         expected_sources=["pricing"],
         answer_keywords=["discount"],
+        key_facts=["volume", "discount"],
+        reference_answer="Enterprise agreements include tiered volume discounts based on committed annual seats or usage, with multi-year discounts.",
     ),
     EvalCase(
         id="q15",
@@ -180,6 +219,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="needs_review",
         expected_sources=["legal"],
         answer_keywords=["DPA", "subprocessor"],
+        key_facts=["DPA", "subprocessor", "Standard Contractual Clauses"],
+        reference_answer="We execute a GDPR-compliant DPA with EU Standard Contractual Clauses and publish a subprocessor list with a 30-day objection window.",
     ),
     EvalCase(
         id="q17",
@@ -189,6 +230,8 @@ GOLDEN: list[EvalCase] = [
         expected_route="needs_review",
         expected_sources=["legal"],
         answer_keywords=["deleted"],
+        key_facts=["30 days", "deleted", "90 days"],
+        reference_answer="On termination, data is exportable for 30 days and then securely deleted within 90 days, with certified deletion evidence on request.",
     ),
     EvalCase(
         id="q18",
