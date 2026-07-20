@@ -41,6 +41,7 @@ decompose -> draft -> score_and_route -> human_review(interrupt #1)
 app/            FastAPI app, LangGraph graph, state, KB retrieval, LLM wrapper
 static/         Single-page UI (timeline, review queue, export preview)
 data/           Sample RFP + markdown knowledge base
+evals/          Offline eval harness + labeled golden dataset (quality metrics)
 tests/          Graph interrupt/resume + API tests (run fully offline)
 ```
 
@@ -71,6 +72,36 @@ export OPENAI_API_KEY=sk-...     # optional; demo mode is the default
 ```bash
 .venv/bin/python -m pytest -q
 ```
+
+## Evaluate
+
+An offline evaluation harness (`evals/`) scores the pipeline against a labeled
+golden dataset (`evals/dataset.py`) — no API key required — and gates on
+per-metric thresholds. It has two suites:
+
+- **pipeline** (`evals/harness.py`) — classification, risk, HITL routing,
+  knowledge-base retrieval, answer grounding, confidence calibration.
+- **answers** (`evals/answer_quality.py`) — AI answer performance: fact coverage
+  (correctness), faithfulness (grounding / anti-hallucination), refusal behavior
+  on out-of-KB questions, hallucination rate, and an optional LLM-as-judge.
+
+```bash
+.venv/bin/python -m evals                        # run both suites; exit 1 on regression
+.venv/bin/python -m evals --suite answers        # AI answer-quality only
+.venv/bin/python -m evals --suite pipeline       # pipeline only
+.venv/bin/python -m evals --json evals/report.json    # write full per-case JSON
+.venv/bin/python -m evals --no-gate              # report only, always exit 0
+
+# Evaluate REAL LLM answers (live mode) + LLM-as-judge:
+OPENAI_API_KEY=sk-... .venv/bin/python -m evals --suite answers --judge
+```
+
+The `answers` suite is model-agnostic: it evaluates demo-mode answers by default,
+real LLM answers when `OPENAI_API_KEY` is set, or any injected `answer_fn` (tests
+use mock good/bad models to prove the metrics discriminate). Both gates are
+exercised by `tests/test_eval.py` and `tests/test_answer_quality.py`, so `pytest`
+fails on a quality regression. Safety-critical pipeline metrics (high-risk items
+and knowledge gaps must always reach a human) are held at 100%.
 
 ## API
 
